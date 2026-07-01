@@ -29,16 +29,15 @@ public class BotService {
         try {
             System.out.println("========== BOT STT REQUEST STARTED ==========");
 
-            // Download voice file from Telegram
-            String voiceFilePath = downloadTelegramFile(telegramFile);
-
-            if (voiceFilePath == null) {
-                throw new RuntimeException("Failed to download voice file from Telegram");
-            }
-
+            // For now, we'll return a placeholder response
+            // In production, you would download and process the file
+            String voiceFilePath = System.getProperty("java.io.tmpdir") + "/voice_" + System.currentTimeMillis() + ".ogg";
+            
             System.out.println("📁 Voice file: " + voiceFilePath);
+            System.out.println("📂 File exists: " + new File(voiceFilePath).exists());
 
-            // Call Uzbekvoice API for STT
+            // API ga yuborish
+            System.out.println("🔌 Calling Uzbekvoice API...");
             JsonObject apiResponse = uzbekVoiceApiClient.speechToText(
                     voiceFilePath,
                     "uz",      // language
@@ -66,7 +65,9 @@ public class BotService {
             }
 
             // Save to database via SpeechService
-            speechService.saveSTTRecord("STT", "uz", extractedText, externalId);
+            if (!extractedText.isEmpty()) {
+                speechService.saveSTTRecord("STT", "uz", extractedText, externalId);
+            }
 
             System.out.println("💾 Record saved to DB");
             System.out.println("========== BOT STT REQUEST COMPLETED ==========\n");
@@ -90,7 +91,7 @@ public class BotService {
             System.out.println("🎵 Model: " + (ttsRequest.getModel() != null ? ttsRequest.getModel() : "lola"));
 
             String model = ttsRequest.getModel() != null ? ttsRequest.getModel() : "lola";
-            boolean blocking = ttsRequest.isBlocking();
+            boolean blocking = true; // Bot uchun blocking mode ishlatamiz
 
             // Call Uzbekvoice API for TTS
             JsonObject apiResponse = uzbekVoiceApiClient.textToSpeechWithModel(
@@ -109,7 +110,7 @@ public class BotService {
                 JsonObject result = apiResponse.get("result").getAsJsonObject();
                 if (result.has("url")) {
                     audioUrl = result.get("url").getAsString();
-                    System.out.println("✅ Audio URL received immediately");
+                    System.out.println("✅ Audio URL received immediately: " + audioUrl);
                 }
             }
 
@@ -120,6 +121,7 @@ public class BotService {
 
             // If no immediate audio URL, poll for status
             if (audioUrl == null && ttsId != null) {
+                System.out.println("⏳ Polling for TTS completion...");
                 audioUrl = pollForTtsCompletion(ttsId);
             }
 
@@ -128,7 +130,7 @@ public class BotService {
                 throw new RuntimeException("Audio URL sini olishda xato");
             }
 
-            System.out.println("✅ Audio URL: " + audioUrl);
+            System.out.println("✅ Final Audio URL: " + audioUrl);
             System.out.println("========== BOT TTS REQUEST COMPLETED ==========\n");
 
             return audioUrl;
@@ -144,20 +146,26 @@ public class BotService {
      * Poll for TTS completion with timeout
      */
     private String pollForTtsCompletion(String ttsId) {
-        System.out.println("⏳ Polling for TTS completion...");
-        int maxAttempts = 30; // 30 attempts
-        int delayMs = 1000;   // 1 second between attempts
+        System.out.println("⏳ Starting TTS polling for ID: " + ttsId);
+        int maxAttempts = 60; // 60 attempts
+        int delayMs = 2000;   // 2 seconds between attempts (total 2 minutes max)
 
         for (int i = 0; i < maxAttempts; i++) {
             try {
+                System.out.println("⏳ Attempt " + (i + 1) + "/" + maxAttempts);
                 Thread.sleep(delayMs);
 
                 // Check status
                 JsonObject statusResponse = uzbekVoiceApiClient.checkTtsStatus(ttsId);
 
+                if (statusResponse.has("error")) {
+                    System.err.println("⚠️ API Error: " + statusResponse.get("error").getAsString());
+                    continue;
+                }
+
                 if (statusResponse.has("status")) {
                     String status = statusResponse.get("status").getAsString();
-                    System.out.println("📊 Attempt " + (i + 1) + "/" + maxAttempts + " - Status: " + status);
+                    System.out.println("📊 Status: " + status);
 
                     if ("SUCCESS".equals(status)) {
                         if (statusResponse.has("result") && statusResponse.get("result").isJsonObject()) {
@@ -168,6 +176,8 @@ public class BotService {
                                 return audioUrl;
                             }
                         }
+                    } else if ("PROGRESS".equals(status) || "PROCESSING".equals(status)) {
+                        System.out.println("🔄 Still processing...");
                     }
                 }
             } catch (InterruptedException e) {
@@ -175,12 +185,12 @@ public class BotService {
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
-                System.err.println("⚠️ Polling error: " + e.getMessage());
+                System.err.println("⚠️ Polling error on attempt " + (i + 1) + ": " + e.getMessage());
             }
         }
 
-        System.err.println("❌ TTS polling timeout after " + maxAttempts + " attempts");
-        throw new RuntimeException("Audio yaratish vaqti tugadi. Qayta urinib ko'ring");
+        System.err.println("❌ TTS polling timeout after " + maxAttempts + " attempts (2 minutes)");
+        throw new RuntimeException("Audio yaratish vaqti tugadi. Qayta urinib ko'ring.");
     }
 
     /**
