@@ -100,23 +100,31 @@ public class MyBot extends TelegramLongPollingBot {
         sendMessage(chatId, "⏳ Ovoz qayta ishlanmoqda...\n\n⌛ Iltimos kuting...");
 
         try {
-            // Download the voice file
-            File voiceFile = downloadVoiceFile(fileId);
+            System.out.println("📥 Voice message received, fileId: " + fileId);
             
-            if (voiceFile != null) {
+            // Download the voice file properly
+            String downloadedFilePath = downloadVoiceFile(fileId);
+            
+            if (downloadedFilePath != null && !downloadedFilePath.isEmpty()) {
+                System.out.println("✅ File downloaded to: " + downloadedFilePath);
+                
                 // Convert voice to text using the service
-                SttResponse response = botService.convertVoiceToText(voiceFile);
+                SttResponse response = botService.convertVoiceToText(downloadedFilePath);
                 
                 if (response != null && response.getText() != null && !response.getText().isEmpty()) {
+                    System.out.println("✅ STT Response text: " + response.getText());
                     sendMessage(chatId, "✅ Natija:\n\n" + response.getText());
                 } else {
+                    System.err.println("❌ STT Response is empty or null");
                     sendMessage(chatId, "❌ Ovozni qayta ishlashda xato. Iltimos, qayta urinib ko'ring");
                 }
             } else {
+                System.err.println("❌ File download failed");
                 sendMessage(chatId, "❌ Faylni yuklashda xato");
             }
         } catch (Exception e) {
             System.err.println("❌ Voice processing error: " + e.getMessage());
+            e.printStackTrace();
             sendMessage(chatId, "❌ Xato: " + e.getMessage());
         }
 
@@ -235,34 +243,45 @@ public class MyBot extends TelegramLongPollingBot {
         }
     }
 
-    private File downloadVoiceFile(String fileId) {
+    private String downloadVoiceFile(String fileId) {
         try {
+            System.out.println("📥 Starting file download...");
             GetFile getFileMethod = new GetFile();
             getFileMethod.setFileId(fileId);
 
             File file = execute(getFileMethod);
             String filePath = file.getFilePath();
+            System.out.println("📂 Telegram file path: " + filePath);
+
             String fileUrl = "https://api.telegram.org/file/bot" + getBotToken() + "/" + filePath;
+            System.out.println("🔗 Download URL: " + fileUrl);
 
             // Download file
             URL url = new URL(fileUrl);
             URLConnection connection = url.openConnection();
             InputStream inputStream = connection.getInputStream();
 
-            // Save to temporary file
+            // Save to temporary file with .ogg extension
             String tempPath = System.getProperty("java.io.tmpdir") + "/" + System.currentTimeMillis() + ".ogg";
             FileOutputStream outputStream = new FileOutputStream(tempPath);
+            
             byte[] buffer = new byte[4096];
             int bytesRead;
+            int totalBytes = 0;
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 outputStream.write(buffer, 0, bytesRead);
+                totalBytes += bytesRead;
             }
             outputStream.close();
             inputStream.close();
 
             java.io.File tempFile = new java.io.File(tempPath);
-            System.out.println("✅ Voice file downloaded: " + tempPath);
-            return file;
+            System.out.println("✅ Voice file downloaded successfully!");
+            System.out.println("📁 Path: " + tempPath);
+            System.out.println("📊 Size: " + totalBytes + " bytes");
+            System.out.println("✔️ File exists: " + tempFile.exists());
+            
+            return tempPath;
         } catch (Exception e) {
             System.err.println("❌ Download error: " + e.getMessage());
             e.printStackTrace();
