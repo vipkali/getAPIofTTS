@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.*;
 
 @Component
@@ -183,27 +184,21 @@ public class MyBot extends TelegramLongPollingBot {
     }
 
     private void sendHelpMessage(long chatId) {
-        String helpText = """
-                🆘 Yordam:
-                
-                /start - Botni qayta boshlash
-                /help - Bu habar
-                /cancel - Joriy operatsiyani bekor qilish
-                
-                📝 Matnga o'tkazish (STT):
-                1. "📝 Matnga o'tkazish (STT)" tugmasini bosing
-                2. Ovoz xabarini yuboring
-                3. Bot sizga matni qaytaradi
-                
-                🎵 Nutqqa o'tkazish (TTS):
-                1. "🎵 Nutqqa o'tkazish (TTS)" tugmasini bosing
-                2. Matnni yuboring
-                3. Bot sizga audio qaytaradi
-                
-                ⚠️ Chegaralar:
-                - Matn: 2-1000 belgi
-                - Ovoz: Maksimal 50 MB
-                """;
+        String helpText = "🆘 Yordam:\n\n" +
+                "/start - Botni qayta boshlash\n" +
+                "/help - Bu habar\n" +
+                "/cancel - Joriy operatsiyani bekor qilish\n\n" +
+                "📝 Matnga o'tkazish (STT):\n" +
+                "1. \"📝 Matnga o'tkazish (STT)\" tugmasini bosing\n" +
+                "2. Ovoz xabarini yuboring\n" +
+                "3. Bot sizga matni qaytaradi\n\n" +
+                "🎵 Nutqqa o'tkazish (TTS):\n" +
+                "1. \"🎵 Nutqqa o'tkazish (TTS)\" tugmasini bosing\n" +
+                "2. Matnni yuboring\n" +
+                "3. Bot sizga audio qaytaradi\n\n" +
+                "⚠️ Chegaralar:\n" +
+                "- Matn: 2-1000 belgi\n" +
+                "- Ovoz: Maksimal 50 MB";
         sendMessage(chatId, helpText);
     }
 
