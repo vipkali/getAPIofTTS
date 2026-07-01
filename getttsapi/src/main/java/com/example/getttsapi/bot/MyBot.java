@@ -97,7 +97,7 @@ public class MyBot extends TelegramLongPollingBot {
             return;
         }
 
-        sendMessage(chatId, "⏳ Ovoz qayta ishlanmoqda...");
+        sendMessage(chatId, "⏳ Ovoz qayta ishlanmoqda...\n\n⌛ Iltimos kuting...");
 
         try {
             // Download the voice file
@@ -136,28 +136,33 @@ public class MyBot extends TelegramLongPollingBot {
             return;
         }
 
-        sendMessage(chatId, "⏳ Audio yaratilmoqda...");
+        sendMessage(chatId, "⏳ Audio yaratilmoqda...\n\n⌛ Iltimos kutib turun (bu 1-2 daqiqa vaqt olishi mumkin)");
 
         try {
             // Create TTS request
             TtsRequest ttsRequest = new TtsRequest();
             ttsRequest.setText(text);
             ttsRequest.setModel("lola"); // Default model
-            ttsRequest.setBlocking(false);
+            ttsRequest.setBlocking(true);
 
             // Convert text to speech
             String audioUrl = botService.convertTextToSpeech(ttsRequest);
 
             if (audioUrl != null && !audioUrl.isEmpty()) {
+                sendMessage(chatId, "✅ Audio tayyor! Yuborish boshlandi...");
                 // Send audio to user
                 sendAudio(chatId, audioUrl, text);
-                sendMessage(chatId, "✅ Audio tayyor!");
             } else {
                 sendMessage(chatId, "❌ Audioyu yaratishda xato. Iltimos, qayta urinib ko'ring");
             }
         } catch (Exception e) {
             System.err.println("❌ TTS error: " + e.getMessage());
-            sendMessage(chatId, "❌ Xato: " + e.getMessage());
+            String errorMsg = e.getMessage();
+            if (errorMsg.contains("vaqti tugadi")) {
+                sendMessage(chatId, "⏰ Audio yaratish vaqti tugadi.\n\nMatni qisqartib urinib ko'ring yoki /cancel bilan bekor qiling");
+            } else {
+                sendMessage(chatId, "❌ Xato: " + errorMsg);
+            }
         }
 
         // Reset state
@@ -195,10 +200,11 @@ public class MyBot extends TelegramLongPollingBot {
                 "🎵 Nutqqa o'tkazish (TTS):\n" +
                 "1. \"🎵 Nutqqa o'tkazish (TTS)\" tugmasini bosing\n" +
                 "2. Matnni yuboring\n" +
-                "3. Bot sizga audio qaytaradi\n\n" +
+                "3. Bot sizga audio qaytaradi (1-2 daqiqa kutib turish mumkin)\n\n" +
                 "⚠️ Chegaralar:\n" +
                 "- Matn: 2-1000 belgi\n" +
-                "- Ovoz: Maksimal 50 MB";
+                "- Ovoz: Maksimal 50 MB\n" +
+                "- Audio yaratish: Maksimal 2 minut";
         sendMessage(chatId, helpText);
     }
 
@@ -218,12 +224,14 @@ public class MyBot extends TelegramLongPollingBot {
         SendAudio audio = new SendAudio();
         audio.setChatId(chatId);
         audio.setAudio(new InputFile(audioUrl));
-        audio.setCaption("🎵 Matn: " + (caption.length() > 100 ? caption.substring(0, 100) + "..." : caption));
+        String shortCaption = caption.length() > 100 ? caption.substring(0, 100) + "..." : caption;
+        audio.setCaption("🎵 Matn: " + shortCaption);
 
         try {
             execute(audio);
         } catch (TelegramApiException e) {
             System.err.println("❌ SendAudio error: " + e.getMessage());
+            sendMessage(chatId, "❌ Audio yuborish xatosi: " + e.getMessage());
         }
     }
 
