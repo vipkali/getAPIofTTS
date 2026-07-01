@@ -8,6 +8,7 @@ import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendAudio;
 import org.telegram.telegrambots.meta.api.objects.File;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
@@ -15,7 +16,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import com.example.getttsapi.dto.TtsRequest;
 import com.example.getttsapi.dto.SttResponse;
 import com.example.getttsapi.service.BotService;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.net.URL;
@@ -217,7 +217,7 @@ public class MyBot extends TelegramLongPollingBot {
     private void sendAudio(long chatId, String audioUrl, String caption) {
         SendAudio audio = new SendAudio();
         audio.setChatId(chatId);
-        audio.setAudio(audioUrl);
+        audio.setAudio(new InputFile(audioUrl));
         audio.setCaption("🎵 Matn: " + (caption.length() > 100 ? caption.substring(0, 100) + "..." : caption));
 
         try {
