@@ -100,6 +100,23 @@ public class SpeechService {
     }
 
     /**
+     * Save STT record to database (for bot)
+     */
+    public void saveSTTRecord(String type, String language, String text, String externalId) {
+        SpeechRecord record = new SpeechRecord();
+        record.setType(type);
+        record.setLanguage(language);
+        record.setText(text);
+        record.setExternalId(externalId);
+        record.setStatus("SUCCESS");
+        record.setCreatedAt(LocalDateTime.now());
+        record.setUpdatedAt(LocalDateTime.now());
+        
+        speechRepository.save(record);
+        System.out.println("💾 STT Record saved to DB");
+    }
+
+    /**
      * Matni nutqqa o'tkazish (TTS) - ASYNC PROCESSING
      * ✅ POLLING TIMEOUT OCHIRILDI - Async ishlaydi
      */
