@@ -23,18 +23,16 @@ public class BotService {
     private SpeechService speechService;
 
     /**
-     * Convert voice file to text (STT)
+     * Convert voice file to text (STT) - String path version for bot
      */
-    public SttResponse convertVoiceToText(org.telegram.telegrambots.meta.api.objects.File telegramFile) {
+    public SttResponse convertVoiceToText(String voiceFilePath) {
         try {
             System.out.println("========== BOT STT REQUEST STARTED ==========");
-
-            // For now, we'll return a placeholder response
-            // In production, you would download and process the file
-            String voiceFilePath = System.getProperty("java.io.tmpdir") + "/voice_" + System.currentTimeMillis() + ".ogg";
+            System.out.println("📁 Voice file path: " + voiceFilePath);
             
-            System.out.println("📁 Voice file: " + voiceFilePath);
-            System.out.println("📂 File exists: " + new File(voiceFilePath).exists());
+            File voiceFile = new File(voiceFilePath);
+            System.out.println("📂 File exists: " + voiceFile.exists());
+            System.out.println("📊 File size: " + voiceFile.length() + " bytes");
 
             // API ga yuborish
             System.out.println("🔌 Calling Uzbekvoice API...");
@@ -191,26 +189,5 @@ public class BotService {
 
         System.err.println("❌ TTS polling timeout after " + maxAttempts + " attempts (2 minutes)");
         throw new RuntimeException("Audio yaratish vaqti tugadi. Qayta urinib ko'ring.");
-    }
-
-    /**
-     * Download file from Telegram server
-     */
-    private String downloadTelegramFile(org.telegram.telegrambots.meta.api.objects.File telegramFile) {
-        try {
-            String filePath = telegramFile.getFilePath();
-            System.out.println("📥 Downloading from Telegram: " + filePath);
-
-            // Create temp file path
-            String tempPath = System.getProperty("java.io.tmpdir") + "/" + System.currentTimeMillis() + ".ogg";
-
-            System.out.println("💾 Saving to: " + tempPath);
-            System.out.println("✅ File download simulated (actual download handled by MyBot)");
-
-            return tempPath;
-        } catch (Exception e) {
-            System.err.println("❌ Download error: " + e.getMessage());
-            return null;
-        }
     }
 }
